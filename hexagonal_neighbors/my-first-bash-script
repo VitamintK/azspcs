@@ -1,0 +1,26 @@
+#!/bin/bash
+python3 main.py 3 -l 170000;
+python3 main.py 4 -l 170000;
+python3 main.py 5 -l 170000;
+python3 main.py 6 -l 170000;
+python3 main.py 7 -l 170000;
+python3 main.py 8 -l 170000;
+python3 main.py 9 -l 170000;
+python3 main.py 10 -l 170000;
+python3 main.py 11 -l 170000;
+python3 main.py 12 -l 170000;
+python3 main.py 13 -l 170000;
+python3 main.py 14 -l 170000;
+python3 main.py 15 -l 170000;
+python3 main.py 16 -l 170000;
+python3 main.py 17 -l 170000;
+python3 main.py 18 -l 170000;
+python3 main.py 19 -l 170000;
+python3 main.py 20 -l 170000;
+python3 main.py 21 -l 170000;
+python3 main.py 22 -l 170000;
+python3 main.py 23 -l 170000;
+python3 main.py 24 -l 170000;
+python3 main.py 25 -l 170000;
+python3 main.py 26 -l 170000;
+python3 main.py 27 -l 170000;
