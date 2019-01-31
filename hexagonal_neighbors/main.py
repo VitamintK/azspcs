@@ -7,10 +7,11 @@ sys.setrecursionlimit(10000)
 parser = argparse.ArgumentParser(description='Optimize.')
 parser.add_argument('N', metavar='N', type=int, help='n (from 3 to 27 inclusive)')
 parser.add_argument('-l', dest='limit', metavar='--limit', type=int)
+parser.add_argument('-b', dest='branches', metavar='--branches', help='branching factor', type=int)
 args = parser.parse_args()
-print(args.N)
 n = args.N
 limit = args.limit
+branches = args.branches if args.branches is not None else (n*n)//12+5
 
 import numpy as np
 
@@ -33,29 +34,36 @@ def get_best(n):
 
 
 class HexagonGrid:
-    def __init__(self):
-        self.grid = np.ones((2*n-1, 2*n-1), np.int8)
-        k = 1-n
-        for i in range(2*n-1):
-            for j in range(min(k,0), max(k,0)):
-                self.grid[i][j] = -1
-            k+=1
-        print(self.grid)
-        self.active_coords = []
-        for i in range(2*n-1):
-            for j in range(2*n-1):
-                if self.grid[i][j] == 1:
-                    self.active_coords.append((i,j))
-        self.sum = len(self.active_coords)
-        self.grid_neighbor_count = np.zeros((2*n-1, 2*n-1, 8), np.int8)
-        self.build_grid_neighbor_count()
+    def __init__(self, from_hexgrid=None):
+        if from_hexgrid is None:
+            self.grid = np.ones((2*n-1, 2*n-1), np.int8)
+            k = 1-n
+            for i in range(2*n-1):
+                for j in range(min(k,0), max(k,0)):
+                    self.grid[i][j] = -1
+                k+=1
+            self.active_coords = []
+            for i in range(2*n-1):
+                for j in range(2*n-1):
+                    if self.grid[i][j] != -1:
+                        self.active_coords.append((i,j))
+            self.sum = len(self.active_coords)
+            self.grid_neighbor_count = np.zeros((2*n-1, 2*n-1, 8), np.int8)
+            self.build_grid_neighbor_count()
+        else:
+            self.grid = np.copy(from_hexgrid.grid)
+            self.active_coords = from_hexgrid.active_coords[:]
+            self.sum = from_hexgrid.sum
+            self.grid_neighbor_count = np.copy(from_hexgrid.grid_neighbor_count)
+
+            self.cluster_heuristic_score = from_hexgrid.cluster_heuristic_score
+        
 
         ### diagnostics to see if doing caching or memoization would help with the monte-carlo backtracking
         #self._hashes_seen = set()
         #self._hash_collisions = 0
         #result: on n = 15, was getting about 10+/-10 collisions every 10,000 iterations
-        ### end diagnostics
-
+        ### end diagnostics   
     def _hash(self):
         """ this is for my testing purpose only.  I think.  It's O(n)"""
         return hash(str(self.grid))
@@ -65,7 +73,6 @@ class HexagonGrid:
         for r, c in self.active_coords:
                 for nr, nc in self.get_neighbors(r, c):
                     self.grid_neighbor_count[nr][nc][self.grid[r][c]]+=1
-        print(self.grid_neighbor_count)
     def check_mutate_hex_feasibility(self, row, col, new_value):
         for i in range(1,new_value):
             if self.grid_neighbor_count[row][col][i] == 0:
@@ -103,6 +110,7 @@ class HexagonGrid:
         return ((row+dr, col+dc) for dr,dc in [(-1,-1), (-1,0), (0,-1), (0,1), (1,0), (1,1)] if 0<=row+dr<2*n-1 and 0<=col+dc<2*n-1 and self.grid[row+dr][col+dc]!=-1)
 
     def monte_carlo_backtrack_start(self, rolls):
+        print("~~~\nBeginning monte carlo backtrack with N={} and branching factor {}\n~~~".format(n, rolls))
         self.best_sum_of_all_time = self.sum
         self.iterations = 0
         self._monte_carlo_backtrack(rolls)
@@ -128,7 +136,7 @@ class HexagonGrid:
             if self.sum >= self.best_sum_of_all_time - 3:
                 ###EXPERIMENT
                 #when we're close to something good, explore much more thoroughly
-                self._monte_carlo_backtrack(30)
+                self._monte_carlo_backtrack(branches*3)
             else:
                 self._monte_carlo_backtrack(rolls)
             self.decrement_hex(row, col)
@@ -185,9 +193,92 @@ class HexagonGrid:
             to_print = self.grid[r][max(0,k):min(k,0)+2*n-1]
             print(' '*spaces + ' '.join(color(str(x)) for x in to_print))
             k+=1
-h = HexagonGrid()
+
+import random
+class RaySearchFeasible:
+    def __init__(self):
+        self.lorde = []
+        self.best_sum_of_all_time = 0
+
+    def ray_search_feasible(self, rolls, width, heuristic, limit):
+        """ray-search.  We pick the best candidates with a heuristic.  Only consider feasible hexgrids.  Also it's gonna be stochastic.
+        width is the "ray-width".  i.e. it's the size of the frontier.  It's the size of the population.  It's the size of the pool of candidates we have each round.
+        heuristic is a fn that takes a grid and outputs a score: higher is better.  It'll probably be O(N)"""
+        def generate_delta():
+            #probs = {-1: 0.01, 0: 0.95, 1: 0.03, 2: 0.01}
+            probs = {0:0.96, 1: 0.01}
+            assert sum(probs.values()) == 1
+            pitems = list(probs.items())
+            r = random.random()
+            cum = 0
+            for i in pitems:
+                cum += i[1]
+                if cum >= r:
+                    return i[0]
+
+        self.lorde = [] #i'm listening to lorde
+        adam = HexagonGrid() #adam from adam & eve
+        adam.cluster_heuristic_score = heuristic(adam)
+        #holy shit this code got so bad so fast 
+        #but whatever i won't have to maintain this since the competition ends in 2 days so yolo
+        self.lorde.append(adam)
+        for i in range(limit):
+            unculled_candidates = self.lorde[:]
+            for hexgrid in self.lorde:
+                for i in range(rolls):
+                    new_hexgrid = HexagonGrid(from_hexgrid = hexgrid)
+                    ##################################
+                    row, col = random.choice(new_hexgrid.active_coords)
+                    if not new_hexgrid.increment_hex(row, col, True):
+                        continue
+                    else:
+                        unculled_candidates.append(new_hexgrid)
+
+                        if new_hexgrid.sum > self.best_sum_of_all_time:
+                            self.best_sum_of_all_time = new_hexgrid.sum
+                            print(new_hexgrid.get_raw_score())
+                            new_hexgrid.pretty_print()
+                            print(new_hexgrid.serialize())
+                            best = get_best(n)
+
+                            if best is None or new_hexgrid.get_raw_score() > best[0]:
+                                print("new all-time-best")
+                                new_hexgrid.save()
+                                print("saved!")
+                            elif best is not None:
+                                print("all-time-best is {} :(".format(best[0]))
+
+                
+                    ############################
+                    #if new_hexgrid.is_feasible():
+                    #    unculled_candidates.append(new_hexgrid)
+            unculled_candidates.sort(key=heuristic, reverse=True)
+            #print(heuristic(unculled_candidates[0]))
+            #unculled_candidates[0].pretty_print()
+            self.lorde = unculled_candidates[:width]
+
+        return unculled_candidates[0]
+
+
+def clustering_heuristic(hexgrid):
+    ans = 0
+    for r, c in hexgrid.active_coords:
+        for dependents in range(1,8):
+            ans += hexgrid.grid_neighbor_count[r][c][dependents]*hexgrid.grid[r][c]*dependents
+            #if hexgrid.grid_neighbor_count[r][c][dependents] == 1 and dependents < hexgrid.grid[r][c]:
+            #    ans += hexgrid.grid_neighbor_count[r][c][dependents]*dependents*2
+            #    ans +=  hexgrid.grid[r][c]*dependents*6
+            #else:
+            #    ans += hexgrid.grid[r][c]*dependents
+    return ans
+
+
+#h = HexagonGrid()
+#h.monte_carlo_backtrack_start(branches)
 
 #import cProfile
 #cProfile.run('h.monte_carlo_backtrack_start(10)')
 
-h.monte_carlo_backtrack_start(10)
+r = RaySearchFeasible()
+r.ray_search_feasible(rolls=20, width=10, heuristic=clustering_heuristic, limit=2000)
+
