@@ -89,6 +89,7 @@ class HexagonGrid:
         for nr, nc in self.get_neighbors(row, col):
             self.grid_neighbor_count[nr][nc][prev_value]-=1
             self.grid_neighbor_count[nr][nc][new_value]+=1
+            self.cluster_heuristic_score+=(new_value-prev_value)*self.grid[nr][nc]*2
         self.grid[row][col] = new_value
         self.sum += new_value - prev_value
         return True
@@ -233,7 +234,7 @@ class RaySearchFeasible:
                         continue
                     else:
                         unculled_candidates.append(new_hexgrid)
-
+                        #assert(new_hexgrid.cluster_heuristic_score == heuristic(new_hexgrid))
                         if new_hexgrid.sum > self.best_sum_of_all_time:
                             self.best_sum_of_all_time = new_hexgrid.sum
                             print(new_hexgrid.get_raw_score())
@@ -280,5 +281,5 @@ def clustering_heuristic(hexgrid):
 #cProfile.run('h.monte_carlo_backtrack_start(10)')
 
 r = RaySearchFeasible()
-r.ray_search_feasible(rolls=20, width=10, heuristic=clustering_heuristic, limit=2000)
+r.ray_search_feasible(rolls=20, width=10, heuristic=clustering_heuristic, limit=5000 if limit is None else limit)
 
