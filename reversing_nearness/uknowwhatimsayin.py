@@ -43,7 +43,7 @@ class Solver:
                 print(b.serialize())
                 ans = b
             next_candidates.sort(key=lambda x: x.heuristic(), reverse=True)
-            next_candidates = next_candidates[:population]
+            candidates = next_candidates[:population]
         return ans
     def monte_carlo_backtrack(self):
         # soln
@@ -123,7 +123,7 @@ class Nearness(Solution):
         return self.pretty_str()
 
 def main():
-    n = Nearness(n = 30)
+    n = Nearness(n = 6)
     print(n.board)
     print(n.score())
     print(n)

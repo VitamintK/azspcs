@@ -1,11 +1,11 @@
 import random
 import math
-ITS = 1000
+ITS = 1000000
 def run(n):
    best = None
    argbest = None
    for i in range(ITS):
-      base = random.randint(4,1000)
+      base = random.randint(3,1000)
       options = set(range(1,base))
       params = []
       accum = 0
@@ -15,10 +15,12 @@ def run(n):
          if accum + pow(pick, n) <= target:
             accum += pow(pick, n)
             params.append(pick)
-            options.remove(pick)
+         options.remove(pick)
       if best is None or 0 <= target - accum < best:
          best = target - accum
          argbest = '{}^{}=>{{{}}}'.format(base, n, ','.join(str(x) for x in params)) 
+         print(best)
+         print(argbest)
    # print('{}^{} = {}'.format(ans, n, ' + '.join('{}^{}'.format(x, n) for x in params)))
    # print('{}^{}=>{{{}}}'.format(ans, n, ','.join(str(x) for x in params)))
    # print(pow(ans, n) - summation)
