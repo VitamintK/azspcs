@@ -69,14 +69,25 @@ class APMathSolution(common.Solution):
             if random.random() < 0.2 * max(temperature,0.2) and ans.sc > 0:
                 sampled_deletion = random.choice(list(ans.live_coords))
                 ans.remove(sampled_deletion)
-        if ans.sc == 0 or random.random() < 0.75:
+        if ans.sc == 0 and random.random() < 0.3:
             sampled_coord = random.choice(self.active_coords)
+            if ans._can_add(sampled_coord):
+                ans.add(sampled_coord)
         else:
-            x,y = random.choice(list(ans.live_coords))
-            x_offset, y_offset = random.normalvariate(0, 1), random.normalvariate(0, 1)
-            sampled_coord = (round(x+x_offset * random.choice([-1,1])), round(y+y_offset*random.choice([-1,1])))
-        if self._can_add(sampled_coord):
-            ans.add(sampled_coord)
+            # x,y = random.choice(list(ans.live_coords))
+            x,y = random.choice(self.active_coords)
+            # pattern = random.choice(([(0,1), (1,1)], [(1,1),(1,0)]))
+            pattern = [(0,0), (0,1), (1,1)]
+            # for x_offset, y_offset in pattern:
+            #     # x_offset, y_offset = random.normalvariate(0, 1), random.normalvariate(0, 1)
+            #     sampled_coord = (round(x+x_offset), round(y+y_offset))
+            #     if not ans._can_add(sampled_coord):
+            #         return ans
+            for x_offset, y_offset in pattern:
+                # x_offset, y_offset = random.normalvariate(0, 1), random.normalvariate(0, 1)
+                sampled_coord = (round(x+x_offset), round(y+y_offset))
+                if ans._can_add(sampled_coord):
+                    ans.add(sampled_coord)
         return ans
     def heuristic(self):
         return self.score() + random.randint(-2,2)

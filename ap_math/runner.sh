@@ -1,5 +1,5 @@
 #!/bin/bash
-for i in {1..100}
+for i in $(seq $2)
 do
-    python3 main.py --n 11 --its 1000
+    python3 main.py --n $1 --its $3
 done
