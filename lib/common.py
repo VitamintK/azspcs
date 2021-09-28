@@ -70,3 +70,29 @@ class MonteCarloBeamSearcher:
             next_candidates.sort(key=lambda x: x.heuristic(), reverse=True)
             candidates = next_candidates[:population]
         return ans
+
+class ExhaustiveBacktracker:
+    def __init__(self, start, best_of_all_time, with_cache=True):
+        self.solution = start
+        self.best_of_all_time = best_of_all_time
+        self.its = 0
+        if with_cache:
+            self.cache = set()
+    def go(self):
+        if self.solution._hash in self.cache:
+            return
+        self.cache.add(self.solution._hash)
+        for action in self.solution.get_all_actions():
+            self.its += 1
+            if self.its % 5000 == 0:
+                print(self.its)
+                print(self.solution.score())
+                print(self.solution.pretty())
+            self.solution.apply_action(action)
+            score = self.solution.score()
+            if score > self.best_of_all_time:
+                self.solution.save()
+                self.best_of_all_time = score
+            self.go()
+            self.solution.undo_action(action)
+        

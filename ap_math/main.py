@@ -25,11 +25,14 @@ class APMathSolution(common.Solution):
             self.active_coord_set = from_grid.active_coord_set
             self.sc = from_grid.sc
             self.live_coords = copy.copy(from_grid.live_coords)
+            self._hash = from_grid._hash
         else:
             grid = np.zeros((2*n-1, 2*n-1), np.int8) # or bitset
             self.active_coords = []
             self.live_coords = set()
             self.sc = 0
+            self._hash = 0
+            self._fecund_coords = set()
             k = 1-n
             for i in range(2*n-1):
                 for j in range(min(k,0), max(k,0)):
@@ -39,9 +42,18 @@ class APMathSolution(common.Solution):
                 for j in range(2*n-1):
                     if grid[i][j] != -1:
                         self.active_coords.append((i,j))
-                        # self.free_coords.add((i,j))
-            random.shuffle(self.active_coords)
+            # for i in range(2*n-1):
+            #     for j in range(2*n-1):         
+            #         if grid[i][j] != -1 and (i,j) not in self.active_coords:
+            #             self.active_coords.append((i,j))
+            #         if grid[j][i] != -1 and (j,i) not in self.active_coords:
+            #             self.active_coords.append((j,i))
+            # random.shuffle(self.active_coords)
+            print(self.active_coords)
             self.active_coord_set = set(self.active_coords)
+    def _coord_to_int(self, coord):
+        r, c = coord
+        return r*(2*n - 1) + c
     def _can_add(self, coord):
         if coord not in self.active_coord_set:
             return False
@@ -60,24 +72,74 @@ class APMathSolution(common.Solution):
     def add(self, coord):
         self.sc += 1
         self.live_coords.add(coord)
+        self._hash |= (1 << self._coord_to_int(coord))
     def remove(self, coord):
         self.sc -= 1
         self.live_coords.remove(coord)
+        self._hash ^= (1 << self._coord_to_int(coord))
+    def get_all_actions(self):
+        ans = []
+        for coord in self.active_coords:
+            if self._can_add(coord):
+                ans.append(coord)
+        return ans
+            
     def sample_neighbor(self, temperature):
         ans = APMathSolution(self.n, self)
         for i in range(3):
             if random.random() < 0.2 * max(temperature,0.2) and ans.sc > 0:
                 sampled_deletion = random.choice(list(ans.live_coords))
                 ans.remove(sampled_deletion)
-        if ans.sc == 0 and random.random() < 0.3:
-            sampled_coord = random.choice(self.active_coords)
-            if ans._can_add(sampled_coord):
-                ans.add(sampled_coord)
+        if ans.sc == 0 or random.random() < 1:
+            # sampled_coord = random.choice(self.active_coords)
+            coords = [(0, 0), (0, 5), (0, 1), (0, 2), (0, 3), (0, 4),
+            (1, 0),  (9, 4), (2, 0), (3, 0), (4, 0), (5, 0), (6, 1), (7, 2), (8, 3),
+            (10, 5), (10, 10),  (10, 6), (10, 7), (10, 8), (10, 9),
+            (1, 6),  (9, 10), (2, 7), (3, 8), (4, 9), (5, 10), (6, 10), (7, 10), (8, 10),
+             (1, 1), (1, 5),  (1, 2), (1, 3), (1, 4), 
+                (2, 1),  (8, 4), (3, 1), (4, 1), (5, 1), (6, 2), (7, 3),
+             (9, 5),  (9, 9), (9, 6), (9, 7), (9, 8),
+             (2, 6), (8, 9), (3, 7), (4, 8), (5, 9), (6, 9), (7, 9), 
+
+              (2, 2), (2, 3), (2, 4), (2, 5), 
+(3, 6),
+(4, 7),
+(5, 8),
+(6, 8),
+(7, 8),
+              (8, 5), (8, 6), (8, 7), (8, 8),  
+                (3, 2),
+(4, 2),
+(5, 2),
+(6, 3),
+(7, 4),
+               (3, 3), (3, 4), (3, 5),   
+               (4, 3), (4, 4), (4, 5), (4, 6),   
+               (5, 3), (5, 4), (5, 5), (5, 6), (5, 7),   
+               (6, 4), (6, 5), (6, 6), (6, 7),   
+               (7, 5), (7, 6), (7, 7)
+            ]
+            for sampled_coord in coords:
+                if ans._can_add(sampled_coord):
+                    ans.add(sampled_coord)
+                    return ans
         else:
+            # sampled_coord = random.choice(self.active_coords)
+            # if ans._can_add(sampled_coord):
+            #     ans.add(sampled_coord)
+            # return ans
             # x,y = random.choice(list(ans.live_coords))
             x,y = random.choice(self.active_coords)
             # pattern = random.choice(([(0,1), (1,1)], [(1,1),(1,0)]))
-            pattern = [(0,0), (0,1), (1,1)]
+            pattern = [(0,0), (0,1), (0,3), (0,4), (0,9), (0,10), (0,12), (0,13),
+            (1,0), (1,1), (1,3), (1,4), (1,9), (1,10), (1,12), (1,13),]
+            # (3,0), (3,1), (3,3), (3,4), (3,9), (3,10), (3,12), (3,13)]
+            pattern = [(0,0),(0,1),(1,0),(1,2),(2,1),(2,2)]
+            # pattern = random.choice([
+            #     [(0,0), (0,1)],
+            #     [(0,0), (0,1), (0,3), (0,4)],
+            #     [(0,0),(1,0)]
+            # ])
             # for x_offset, y_offset in pattern:
             #     # x_offset, y_offset = random.normalvariate(0, 1), random.normalvariate(0, 1)
             #     sampled_coord = (round(x+x_offset), round(y+y_offset))
@@ -94,7 +156,9 @@ class APMathSolution(common.Solution):
     def score(self):
         return self.sc
     def apply_action(self, action):
-        pass
+        self.add(action)
+    def undo_action(self, action):
+        self.remove(action)
     def serialize(self):
         ans = []
         x = 1-self.n
@@ -150,5 +214,7 @@ except FileNotFoundError:
     with open(f'{directory}/{n}_score.out', 'w') as f:
         f.write('0')
     best = 0
-s = common.MonteCarloBeamSearcher(initial_solution, best)
-s.go(its, 10, 12)
+# s = common.MonteCarloBeamSearcher(initial_solution, best)
+# s.go(its, 10, 12)
+s = common.ExhaustiveBacktracker(initial_solution, best)
+s.go()
