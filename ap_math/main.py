@@ -48,7 +48,7 @@ class APMathSolution(common.Solution):
                         self.active_coords.append((i,j))
                         self._taboos[(i,j)] = 0
                         self._taboo_free.add((i,j))
-                        self._hash |= (1 << self._coord_to_int((i,j)))
+                        # self._hash |= (1 << self._coord_to_int((i,j)))
             # for i in range(2*n-1):
             #     for j in range(2*n-1):         
             #         if grid[i][j] != -1 and (i,j) not in self.active_coords:
@@ -82,7 +82,7 @@ class APMathSolution(common.Solution):
             return
         self._taboos[coord] += 1
         if coord in self._taboo_free:
-            self._hash ^= (1 << self._coord_to_int(coord))
+            # self._hash ^= (1 << self._coord_to_int(coord))
             self._taboo_free.remove(coord)
     def _remove_taboo(self, coord):
         if coord not in self.active_coord_set:
@@ -90,7 +90,7 @@ class APMathSolution(common.Solution):
         self._taboos[coord] -= 1
         if self._taboos[coord] == 0:
             self._taboo_free.add(coord)
-            self._hash |= (1 << self._coord_to_int(coord))
+            # self._hash |= (1 << self._coord_to_int(coord))
     def add(self, coord):
         self._add_taboo(coord)
         for xcoord in self.live_coords:
@@ -105,11 +105,11 @@ class APMathSolution(common.Solution):
                 self._add_taboo(newcoord)
         self.sc += 1
         self.live_coords.add(coord)
-        # self._hash |= (1 << self._coord_to_int(coord))
+        self._hash |= (1 << self._coord_to_int(coord))
     def remove(self, coord):
         self.sc -= 1
         self.live_coords.remove(coord)
-        # self._hash ^= (1 << self._coord_to_int(coord))
+        self._hash ^= (1 << self._coord_to_int(coord))
         self._remove_taboo(coord)
         for xcoord in self.live_coords:
             d = (coord[0]-xcoord[0], coord[1]-xcoord[1])
