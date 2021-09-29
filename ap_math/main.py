@@ -1,6 +1,7 @@
 import sys
 sys.path.insert(1, '../')
 
+from collections import defaultdict
 import math
 import random
 import numpy as np
@@ -26,13 +27,16 @@ class APMathSolution(common.Solution):
             self.sc = from_grid.sc
             self.live_coords = copy.copy(from_grid.live_coords)
             self._hash = from_grid._hash
+            self._taboos = copy.copy(from_grid)
+            self._taboo_free = copy.copy(from_grid)
         else:
             grid = np.zeros((2*n-1, 2*n-1), np.int8) # or bitset
             self.active_coords = []
             self.live_coords = set()
             self.sc = 0
             self._hash = 0
-            self._fecund_coords = set()
+            self._taboos = defaultdict(int)
+            self._taboo_free = set()
             k = 1-n
             for i in range(2*n-1):
                 for j in range(min(k,0), max(k,0)):
@@ -42,34 +46,59 @@ class APMathSolution(common.Solution):
                 for j in range(2*n-1):
                     if grid[i][j] != -1:
                         self.active_coords.append((i,j))
+                        self._taboos[(i,j)] = 0
+                        self._taboo_free.add((i,j))
             # for i in range(2*n-1):
             #     for j in range(2*n-1):         
             #         if grid[i][j] != -1 and (i,j) not in self.active_coords:
             #             self.active_coords.append((i,j))
             #         if grid[j][i] != -1 and (j,i) not in self.active_coords:
             #             self.active_coords.append((j,i))
-            # random.shuffle(self.active_coords)
+            random.shuffle(self.active_coords)
             print(self.active_coords)
             self.active_coord_set = set(self.active_coords)
     def _coord_to_int(self, coord):
         r, c = coord
         return r*(2*n - 1) + c
     def _can_add(self, coord):
+        return self._taboos[coord] == 0
+        # if coord not in self.active_coord_set:
+        #     return False
+        # if coord in self.live_coords:
+        #     return False
+        # for xcoord in self.live_coords:
+        #     # d = coord - xcoord
+        #     newcoord = (coord[0]*2-xcoord[0], coord[1]*2-xcoord[1])
+        #     if newcoord in self.active_coord_set and newcoord in self.live_coords:
+        #         return False
+        #     if (coord[0]-xcoord[0])%2 == 0 and (coord[1]-xcoord[1])%2==0:
+        #         newcoord = ((coord[0]+xcoord[0])//2, (coord[1]+xcoord[1])//2)
+        #         if newcoord in self.active_coord_set and newcoord in self.live_coords:
+        #             return False
+        # return True 
+    def _add_taboo(self, coord):
         if coord not in self.active_coord_set:
-            return False
-        if coord in self.live_coords:
-            return False
+            return
+        self._taboos[coord] += 1
+        self._taboo_free.discard(coord)
+    def _remove_taboo(self, coord):
+        if coord not in self.active_coord_set:
+            return
+        self._taboos[coord] -= 1
+        if self._taboos[coord] == 0:
+            self._taboo_free.add(coord)
+    def add(self, coord):
+        self._add_taboo(coord)
         for xcoord in self.live_coords:
-            # d = coord - xcoord
-            newcoord = (coord[0]*2-xcoord[0], coord[1]*2-xcoord[1])
-            if newcoord in self.active_coord_set and newcoord in self.live_coords:
-                return False
+            d = (coord[0]-xcoord[0], coord[1]-xcoord[1])
+            newcoord = (coord[0] + d[0], coord[1] + d[1])
+            self._add_taboo(newcoord)
+            d = (-d[0], -d[1])
+            newcoord = (xcoord[0] + d[0], xcoord[1] + d[1])
+            self._add_taboo(newcoord)
             if (coord[0]-xcoord[0])%2 == 0 and (coord[1]-xcoord[1])%2==0:
                 newcoord = ((coord[0]+xcoord[0])//2, (coord[1]+xcoord[1])//2)
-                if newcoord in self.active_coord_set and newcoord in self.live_coords:
-                    return False
-        return True 
-    def add(self, coord):
+                self._add_taboo(newcoord)
         self.sc += 1
         self.live_coords.add(coord)
         self._hash |= (1 << self._coord_to_int(coord))
@@ -77,12 +106,22 @@ class APMathSolution(common.Solution):
         self.sc -= 1
         self.live_coords.remove(coord)
         self._hash ^= (1 << self._coord_to_int(coord))
+        self._remove_taboo(coord)
+        for xcoord in self.live_coords:
+            d = (coord[0]-xcoord[0], coord[1]-xcoord[1])
+            newcoord = (coord[0] + d[0], coord[1] + d[1])
+            self._remove_taboo(newcoord)
+            d = (-d[0], -d[1])
+            newcoord = (xcoord[0] + d[0], xcoord[1] + d[1])
+            self._remove_taboo(newcoord)
+            if (coord[0]-xcoord[0])%2 == 0 and (coord[1]-xcoord[1])%2==0:
+                newcoord = ((coord[0]+xcoord[0])//2, (coord[1]+xcoord[1])//2)
+                self._remove_taboo(newcoord)
     def get_all_actions(self):
-        ans = []
-        for coord in self.active_coords:
-            if self._can_add(coord):
-                ans.append(coord)
-        return ans
+        # ans = []
+        return self._taboo_free
+        return copy.copy(self._taboo_free)
+        # return ans
             
     def sample_neighbor(self, temperature):
         ans = APMathSolution(self.n, self)
