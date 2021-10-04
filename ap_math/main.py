@@ -56,8 +56,8 @@ class APMathSolution(common.Solution):
             #         if grid[j][i] != -1 and (j,i) not in self.active_coords:
             #             self.active_coords.append((j,i))
             # random.shuffle(self.active_coords)
-            print(self.active_coords)
-            print([r*(n*2-1)+c for r,c in self.active_coords])
+            # print(self.active_coords)
+            # print([r*(n*2-1)+c for r,c in self.active_coords])
             self.active_coord_set = set(self.active_coords)
     def _coord_to_int(self, coord):
         r, c = coord
@@ -131,7 +131,7 @@ class APMathSolution(common.Solution):
     def sample_neighbor(self, temperature):
         ans = APMathSolution(self.n, self)
         for i in range(3):
-            if random.random() < 0.2 * max(temperature,0.2) and ans.sc > 0:
+            if random.random() < 0.2 * max(1-temperature,0.2) and ans.sc > 0:
                 sampled_deletion = random.choice(list(ans.live_coords))
                 ans.remove(sampled_deletion)
         if ans.sc == 0 or random.random() < 1:
@@ -249,11 +249,19 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--n', type=int)
     parser.add_argument('--its', type=int)
+    parser.add_argument('--p', type=int)
+    parser.add_argument('--k', type=int)
     commandline_args = parser.parse_args()
     n = commandline_args.n
     its = commandline_args.its
+    p = commandline_args.p
+    k = commandline_args.k
     if its is None:
         its = 1000
+    if p is None:
+        p = 20
+    if k is None:
+        k = 1000
 
     initial_solution = APMathSolution(n)
     try:
@@ -263,7 +271,11 @@ if __name__=='__main__':
         with open(f'{directory}/{n}_score.out', 'w') as f:
             f.write('0')
         best = 0
-    s = common.MonteCarloBeamSearcher(initial_solution, best)
-    s.go(its, 40, 40)
+    # s = common.MonteCarloBeamSearcher(initial_solution, best)
+    # s.go(its, p, k)
+
     # s = common.ExhaustiveBacktracker(initial_solution, best)
     # s.go()
+
+    s = common.SamplingBacktracker(initial_solution, best, k=k)
+    s.go()
