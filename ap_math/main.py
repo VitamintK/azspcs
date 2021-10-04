@@ -27,8 +27,8 @@ class APMathSolution(common.Solution):
             self.sc = from_grid.sc
             self.live_coords = copy.copy(from_grid.live_coords)
             self._hash = from_grid._hash
-            self._taboos = copy.copy(from_grid)
-            self._taboo_free = copy.copy(from_grid)
+            self._taboos = copy.copy(from_grid._taboos)
+            self._taboo_free = copy.copy(from_grid._taboo_free)
         else:
             grid = np.zeros((2*n-1, 2*n-1), np.int8) # or bitset
             self.active_coords = []
@@ -57,6 +57,7 @@ class APMathSolution(common.Solution):
             #             self.active_coords.append((j,i))
             # random.shuffle(self.active_coords)
             print(self.active_coords)
+            print([r*(n*2-1)+c for r,c in self.active_coords])
             self.active_coord_set = set(self.active_coords)
     def _coord_to_int(self, coord):
         r, c = coord
@@ -105,11 +106,11 @@ class APMathSolution(common.Solution):
                 self._add_taboo(newcoord)
         self.sc += 1
         self.live_coords.add(coord)
-        self._hash |= (1 << self._coord_to_int(coord))
+        # self._hash |= (1 << self._coord_to_int(coord))
     def remove(self, coord):
         self.sc -= 1
         self.live_coords.remove(coord)
-        self._hash ^= (1 << self._coord_to_int(coord))
+        # self._hash ^= (1 << self._coord_to_int(coord))
         self._remove_taboo(coord)
         for xcoord in self.live_coords:
             d = (coord[0]-xcoord[0], coord[1]-xcoord[1])
@@ -134,38 +135,40 @@ class APMathSolution(common.Solution):
                 sampled_deletion = random.choice(list(ans.live_coords))
                 ans.remove(sampled_deletion)
         if ans.sc == 0 or random.random() < 1:
-            # sampled_coord = random.choice(self.active_coords)
-            coords = [(0, 0), (0, 5), (0, 1), (0, 2), (0, 3), (0, 4),
-            (1, 0),  (9, 4), (2, 0), (3, 0), (4, 0), (5, 0), (6, 1), (7, 2), (8, 3),
-            (10, 5), (10, 10),  (10, 6), (10, 7), (10, 8), (10, 9),
-            (1, 6),  (9, 10), (2, 7), (3, 8), (4, 9), (5, 10), (6, 10), (7, 10), (8, 10),
-             (1, 1), (1, 5),  (1, 2), (1, 3), (1, 4), 
-                (2, 1),  (8, 4), (3, 1), (4, 1), (5, 1), (6, 2), (7, 3),
-             (9, 5),  (9, 9), (9, 6), (9, 7), (9, 8),
-             (2, 6), (8, 9), (3, 7), (4, 8), (5, 9), (6, 9), (7, 9), 
+            sampled_coord = random.choice(self.active_coords)
+            if ans._can_add(sampled_coord):
+                ans.add(sampled_coord)
+#             coords = [(0, 0), (0, 5), (0, 1), (0, 2), (0, 3), (0, 4),
+#             (1, 0),  (9, 4), (2, 0), (3, 0), (4, 0), (5, 0), (6, 1), (7, 2), (8, 3),
+#             (10, 5), (10, 10),  (10, 6), (10, 7), (10, 8), (10, 9),
+#             (1, 6),  (9, 10), (2, 7), (3, 8), (4, 9), (5, 10), (6, 10), (7, 10), (8, 10),
+#              (1, 1), (1, 5),  (1, 2), (1, 3), (1, 4), 
+#                 (2, 1),  (8, 4), (3, 1), (4, 1), (5, 1), (6, 2), (7, 3),
+#              (9, 5),  (9, 9), (9, 6), (9, 7), (9, 8),
+#              (2, 6), (8, 9), (3, 7), (4, 8), (5, 9), (6, 9), (7, 9), 
 
-              (2, 2), (2, 3), (2, 4), (2, 5), 
-(3, 6),
-(4, 7),
-(5, 8),
-(6, 8),
-(7, 8),
-              (8, 5), (8, 6), (8, 7), (8, 8),  
-                (3, 2),
-(4, 2),
-(5, 2),
-(6, 3),
-(7, 4),
-               (3, 3), (3, 4), (3, 5),   
-               (4, 3), (4, 4), (4, 5), (4, 6),   
-               (5, 3), (5, 4), (5, 5), (5, 6), (5, 7),   
-               (6, 4), (6, 5), (6, 6), (6, 7),   
-               (7, 5), (7, 6), (7, 7)
-            ]
-            for sampled_coord in coords:
-                if ans._can_add(sampled_coord):
-                    ans.add(sampled_coord)
-                    return ans
+#               (2, 2), (2, 3), (2, 4), (2, 5), 
+# (3, 6),
+# (4, 7),
+# (5, 8),
+# (6, 8),
+# (7, 8),
+#               (8, 5), (8, 6), (8, 7), (8, 8),  
+#                 (3, 2),
+# (4, 2),
+# (5, 2),
+# (6, 3),
+# (7, 4),
+#                (3, 3), (3, 4), (3, 5),   
+#                (4, 3), (4, 4), (4, 5), (4, 6),   
+#                (5, 3), (5, 4), (5, 5), (5, 6), (5, 7),   
+#                (6, 4), (6, 5), (6, 6), (6, 7),   
+#                (7, 5), (7, 6), (7, 7)
+#             ]
+#             for sampled_coord in coords:
+#                 if ans._can_add(sampled_coord):
+#                     ans.add(sampled_coord)
+#                     return ans
         else:
             # sampled_coord = random.choice(self.active_coords)
             # if ans._can_add(sampled_coord):
@@ -195,7 +198,7 @@ class APMathSolution(common.Solution):
                     ans.add(sampled_coord)
         return ans
     def heuristic(self):
-        return self.score() + random.randint(-2,2)
+        return self.score() + len(self._taboo_free)/len(self.active_coord_set)
     def score(self):
         return self.sc
     def apply_action(self, action):
@@ -241,25 +244,26 @@ class APMathSolution(common.Solution):
             f.write(self.serialize())
         with open(f'{directory}/{self.n}_score.out', 'w') as f:
             f.write(f'{self.score()}')
-        
-parser = argparse.ArgumentParser()
-parser.add_argument('--n', type=int)
-parser.add_argument('--its', type=int)
-commandline_args = parser.parse_args()
-n = commandline_args.n
-its = commandline_args.its
-if its is None:
-    its = 1000
 
-initial_solution = APMathSolution(n)
-try:
-    with open(f'{directory}/{n}_score.out', 'r') as f:
-        best = int(f.readline())
-except FileNotFoundError:
-    with open(f'{directory}/{n}_score.out', 'w') as f:
-        f.write('0')
-    best = 0
-# s = common.MonteCarloBeamSearcher(initial_solution, best)
-# s.go(its, 10, 12)
-s = common.ExhaustiveBacktracker(initial_solution, best)
-s.go()
+if __name__=='__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--n', type=int)
+    parser.add_argument('--its', type=int)
+    commandline_args = parser.parse_args()
+    n = commandline_args.n
+    its = commandline_args.its
+    if its is None:
+        its = 1000
+
+    initial_solution = APMathSolution(n)
+    try:
+        with open(f'{directory}/{n}_score.out', 'r') as f:
+            best = int(f.readline())
+    except FileNotFoundError:
+        with open(f'{directory}/{n}_score.out', 'w') as f:
+            f.write('0')
+        best = 0
+    s = common.MonteCarloBeamSearcher(initial_solution, best)
+    s.go(its, 40, 40)
+    # s = common.ExhaustiveBacktracker(initial_solution, best)
+    # s.go()

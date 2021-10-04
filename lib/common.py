@@ -3,6 +3,7 @@ try:
 except ImportError:
     tqdm = lambda x: x
 from multiprocessing import Pool
+import random
 PARALLELIZATION = 4
 
 def f(args):
@@ -30,7 +31,7 @@ class Solution:
     #     raise NotImplementedError
     def serialize(self):
         raise NotImplementedError
-    def pretty_print(self):
+    def pretty(self):
         raise NotImplementedError
     def save(self):
         raise NotImplementedError
@@ -71,23 +72,42 @@ class MonteCarloBeamSearcher:
             candidates = next_candidates[:population]
         return ans
 
+import sys
+sys.setrecursionlimit(100000)
 class ExhaustiveBacktracker:
-    def __init__(self, start, best_of_all_time, with_cache=True):
+    def __init__(self, start: Solution, best_of_all_time, with_cache=False):
         self.solution = start
         self.best_of_all_time = best_of_all_time
         self.its = 0
+        self.with_cache = with_cache
         if with_cache:
             self.cache = set()
     def go(self):
-        if self.solution._hash in self.cache:
-            return
-        self.cache.add(self.solution._hash)
-        for action in self.solution.get_all_actions():
-            self.its += 1
-            if self.its % 5000 == 0:
-                print(self.its)
-                print(self.solution.score())
-                print(self.solution.pretty())
+        if self.with_cache:
+            if self.solution._hash in self.cache:
+                print('hey!')
+                return
+            self.cache.add(self.solution._hash)
+        if len(self.solution._taboo_free) + self.solution.score() <= self.best_of_all_time:
+            # print(len(self.solution.active_coord_set))
+            # print(self.solution.score())
+            # print(len(self.solution._taboo_free), self.solution._taboo_free)
+            # print(self.solution.pretty())
+            return -1
+        self.its += 1
+        if self.its % 5000 == 0:
+            print(f'{self.best_of_all_time=}')
+            print(f'{self.its=}')
+            print(f'{self.solution.score()=}')
+            print(len(self.solution._taboo_free), self.solution._taboo_free)
+            print(self.solution.pretty())
+        # all_actions = list(sorted(self.solution.get_all_actions())) #SORTING ONLY FOR DEBUGGING.  DO NOT NEED THE SORTING FOR ACTUAL RUNNING
+        all_actions = list(self.solution.get_all_actions())
+        random.shuffle(all_actions)
+        added_actions = []
+        for action in all_actions:
+            if len(self.solution._taboo_free) + self.solution.score() <= self.best_of_all_time:
+                break
             self.solution.apply_action(action)
             score = self.solution.score()
             if score > self.best_of_all_time:
@@ -95,4 +115,8 @@ class ExhaustiveBacktracker:
                 self.best_of_all_time = score
             self.go()
             self.solution.undo_action(action)
+            self.solution._add_taboo(action)
+            added_actions.append(action)
+        for action in added_actions:
+            self.solution._remove_taboo(action)
         
