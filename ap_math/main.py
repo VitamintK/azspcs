@@ -247,11 +247,13 @@ class APMathSolution(common.Solution):
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--type', type=str, required=True)
     parser.add_argument('--n', type=int)
     parser.add_argument('--its', type=int)
     parser.add_argument('--p', type=int)
     parser.add_argument('--k', type=int)
     commandline_args = parser.parse_args()
+    t = commandline_args.type
     n = commandline_args.n
     its = commandline_args.its
     p = commandline_args.p
@@ -271,11 +273,14 @@ if __name__=='__main__':
         with open(f'{directory}/{n}_score.out', 'w') as f:
             f.write('0')
         best = 0
-    # s = common.MonteCarloBeamSearcher(initial_solution, best)
-    # s.go(its, p, k)
-
-    # s = common.ExhaustiveBacktracker(initial_solution, best)
-    # s.go()
-
-    s = common.SamplingBacktracker(initial_solution, best, k=k)
-    s.go()
+    
+    if t == 'beam':
+        s = common.MonteCarloBeamSearcher(initial_solution, best)
+        s.go(its, p, k)
+    elif t=='backtrack':
+        # s = common.ExhaustiveBacktracker(initial_solution, best)
+        # s.go()
+        s = common.SamplingBacktracker(initial_solution, best, k=k)
+        s.go()
+    else:
+        raise ValueError(f'{t} is not a recognized type')

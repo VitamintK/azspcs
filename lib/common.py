@@ -146,7 +146,7 @@ class SamplingBacktracker:
             print(f'{self.best_of_all_time=}')
             print(f'{self.its=}')
             print(f'{self.solution.score()=}')
-            print(len(self.solution._taboo_free), self.solution._taboo_free)
+            print(len(self.solution._taboo_free))
             print(self.solution.pretty())
         # all_actions = list(sorted(self.solution.get_all_actions())) #SORTING ONLY FOR DEBUGGING.  DO NOT NEED THE SORTING FOR ACTUAL RUNNING
         all_actions = random.sample(list(self.solution.get_all_actions()), k=min(self.k, len(self.solution.get_all_actions())))
@@ -162,6 +162,8 @@ class SamplingBacktracker:
             all_actions_ranked.append((self.solution.heuristic(), action))
             self.solution.undo_action(action)
         all_actions_ranked.sort(reverse=True)
+        all_actions_ranked = all_actions_ranked[:2] # <-- not sure if this is good or bad
+        # TODO: should only take the top 2 actions unless we're almost at leaf level, in which case we can use more actions
         for heuristic, action in all_actions_ranked:
             if len(self.solution._taboo_free) + self.solution.score() <= self.best_of_all_time:
                 break
